@@ -2,13 +2,17 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
-	"github.com/andrearobbs/budget-tool/budget"
-	"github.com/andrearobbs/budget-tool/cli"
-	"github.com/andrearobbs/budget-tool/db"
+	"github.com/andrearobbs/budget-tool-api/budget"
+	"github.com/andrearobbs/budget-tool-api/db"
+	"github.com/andrearobbs/budget-tool-api/server"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
 )
+
+const port = ":8000"
 
 func main() {
 
@@ -20,8 +24,16 @@ func main() {
 
 	budgetService := budget.NewService(db)
 
-	cliMenu := cli.New(budgetService)
+	budgetServer := server.NewServer(budgetService)
 
-	cliMenu.MainMenu()
+	router := mux.NewRouter()
+	router.HandleFunc("/budget", budgetServer.CreateBudgetHandler).Methods("POST")
+	router.HandleFunc("/budget/{budgetName}/expenses", budgetServer.ListExpensesHandler).Methods("GET")
+	//router.HandleFunc("/budget/{budgetName}/expenses", budgetServer.AddExpenseToBudgetHandler).Methods("POST")
+	//router.HandleFunc("/budget/budgetName/expenses/{expenseID}", budgetServer.GetSingleExpenseHandler).Methods("GET")
 
+	http.Handle("/", router)
+
+	fmt.Println("Waiting for requests on port:", port)
+	http.ListenAndServe(port, nil)
 }
